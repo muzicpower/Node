@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <script src="/socket.io/socket.io.js"></script>
+        
+    </head>
+    <body>
+        <button id="connBtn">Connect</button>
+        <button id="disconnBtn">Disconnect</button>
+        <br><br>
+
+        <textarea id="recvText" cols="60" rows="10"></textarea><br>
+
+        <textarea id="sendText" cols="50" rows="3"></textarea>
+        <button id="sendBtn">Send</button>
+
+        <body>
+    <script>
+        let connBtn =document.getElementById("connBtn") 
+        let discBtn = document.getElementById("disconnBtn")
+        let sendBtn = document.getElementById("sendBtn") 
+        let sendTxt = document.getElementById("sendText")
+        let recvTxt = document.getElementById("recvText")    
+
+        function ff(flag){
+                discBtn.disabled = flag;
+                sendBtn.disabled = flag;
+                sendTxt.disabled = flag;
+                recvTxt.disabled = flag;
+                connBtn.disabled = !flag;
+        }
+        ff(true)
+        let socket = 0;
+
+        connBtn.onclick = ()=>{
+            
+            socket = io.connect()//default: same addr and port for web connection
+            //io global defined in  socket.io/socket.io.js
+            
+            socket.on("serverMsg", data=>{
+                recvTxt.value = data;
+            })
+            ff(false)
+        }
+        discBtn.onclick = ()=>{
+            sendTxt.value = ""
+            recvTxt.value = ""
+            socket.close();                
+            ff(true)
+        } 
+        sendBtn.onclick = ()=>{
+            let sendMsg = sendTxt.value
+            sendTxt.value = ""
+
+            if (sendMsg && sendMsg.length>0) 
+                socket.emit("clientMsg", sendMsg);
+        }              
+    
+        
+    </script>
+</html>

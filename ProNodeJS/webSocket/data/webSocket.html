@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+</head>
+
+<body>
+    <h1>Hello <strong>WebSocket</strong></h1>
+
+    <button id="connBtn">Connect</button>
+    <button id="disconnBtn">Disconnect</button>
+    <br><br>
+
+    <button id="sendBtn">Send</button><br>
+    <textarea id="sendText" cols="50" rows="10"></textarea><br>
+    <textarea id="recvText" cols="50" rows="10"></textarea>
+
+<script>
+    let connBtn =document.getElementById("connBtn") 
+    let discBtn = document.getElementById("disconnBtn")
+    let sendBtn = document.getElementById("sendBtn") 
+    let sendTxt = document.getElementById("sendText")
+    let recvTxt = document.getElementById("recvText")
+
+    function ff(flag){
+        connBtn.disabled = !flag;
+        discBtn.disabled = flag;
+        sendBtn.disabled = flag;
+        sendTxt.disabled = flag;
+        recvTxt.disabled = flag;
+    }
+    ff(true)
+    let ws = 0;
+
+    connBtn.onclick = ()=>{
+        let port = xx
+        let url = 'ws://localhost:'+port
+        
+        ws = new WebSocket(url)
+        
+        ws.onopen = ()=>{console.log('conn established')}
+        ws.onmessage = (event)=>{recvTxt.value = event.data}
+        ws.onclose = (event)=>{
+            if (event.wasClean)console.log(`connection closed cleanly ${event.code} ${event.reason}`)
+            else console.log(`connection closed NOT cleanly`)
+        }
+        ws.onerror = error=>{console.log(`error:${error}`)}  
+        
+        ff(false)
+    }
+    discBtn.onclick = ()=>{
+        ff(true)
+        sendTxt.value = ""
+        recvTxt.value = ""
+        ws.close();                
+    }        
+    sendBtn.onclick = ()=>{
+        let sendMsg = sendTxt.value
+        sendTxt.value = ""
+        if (sendMsg && sendMsg.length>0) 
+            ws.send(sendMsg)
+    }            
+</script>
+</body>
+</html>
