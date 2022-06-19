@@ -32,49 +32,36 @@ Ref: https://www.npmjs.com/package/mysql
 */
 
 let mysql = require('mysql')
+let url = {
+    //"host":"172.30.112.1",        // wsl -> Windows       /etc/resolv.conf
+    "host":"54.152.240.208",        // wsl -> aws 22.04
+    "user":"rla",
+    "password":"1234",
+    "database":"test"
+}
 
-let connection = mysql.createConnection(
-    {
-        //"host":"172.30.112.1",      // wsl -> Windows     /etc/resolv.conf
-        "host":"3.82.20.219",       // wsl -> aws 22.04
-
-        "user":"rla",
-        "password":"1234",
-        "database":"test"
-    }
-)
-connection.connect(err=>{
+let conn = mysql.createConnection(url)
+conn.connect(err=>{
     if(err) return console.log(`connect err:${err}`)
 
     let sql = `SELECT * FROM users`
-    connection.query(sql, (err, results)=>{
+    conn.query(sql, (err, results)=>{
         if (err) return console.log(`query error:${err}`)
-        console.log(results)
+        results.forEach(i=>{console.log(i.fname + ' ' + i.lname + ' zip: ' + i.zip)})
     })    
-    connection.end(err=>{if(err)console.log(`end error:${err}`)})
+    conn.end()
 })
 
 /*
-let pool = mysql.createPool(
-    {
-        //"host":"172.30.112.1",      // wsl -> Windows /etc/resolv.conf
-        //"host":"34.205.33.181",   // wsl -> aws 18.04 
-       "host":"3.82.20.219",   // wsl -> aws 22.04
-        
-        "user":"rla",
-        "password":"1234",
-        "database":"test",
-    }
-)
-pool.getConnection((err, connection)=>{
+let pool = mysql.createPool(url)
+pool.getConnection((err, conn)=>{
     if (err) return console.log(`error:${err}`)
     
-    // db work
     let sql = `SELECT * FROM users`
-    connection.query(sql, (err, results)=>{
+    conn.query(sql, (err, results)=>{
         if (err) return console.log(`query error:${err}`)
-        console.log(results)
-        connection.release()// return back to pool
+        results.forEach(i=>{console.log(i.fname + ' ' + i.lname + ' zip: ' + i.zip)})
+        conn.release()// return back to pool
         pool.end()
     })
 })

@@ -29,9 +29,26 @@
 //      on Windows: mongod --bind_ip 0.0.0.0 --port 30000
 //      on wsl: /etc/resolv.conf
 
-//let connstr = "mongodb://3.82.20.219:30000"     //wsl -> AWS
-//let connstr = "mongodb+srv://rla:1234@cluster0.wxzlo.mongodb.net/sample_mflix"  //wsl -> cloud ok
+let url = "mongodb+srv://rla:1234@cluster0.wxzlo.mongodb.net"  
+const MongoClient = require('mongodb').MongoClient;
 
+MongoClient.connect(url, (err,conn)=>{
+    if(err) console.log('error occurred in connect')
+
+    const db = conn.db('sample_mflix')
+    const coll = db.collection('movies') 
+    coll.find({year:2001},{projection:{_id:0, title:1, year:1, imdb:1}}).limit(5).toArray((err,result)=>{
+        if(err)console.log('find error')
+        result.forEach(i=>{console.log(`title: ${i.title}, year: ${i.year} imdb:${i.imdb.rating}`)})
+        conn.close()
+    })
+})
+
+
+/*
+///MONGOOSE == TRASHHHHHHHHHHHHHHHHHHHH
+/////////////////////////////////
+const { mongoose } = require('mongoose');
 let mongoose = require('mongoose')
 let conn = mongoose.createConnection(connstr)  //mongoose.connect(connstr); let conn = mongoose.connection
 
@@ -54,7 +71,7 @@ conn.on('open', (error)=>{
 })
 conn.on('error', ()=>{console.log(`connection error`)})
 
-
+*/
 //////////////////////////////////////////////////////////////////////////////////////
 /*
 let Schema = mongoose.Schema
