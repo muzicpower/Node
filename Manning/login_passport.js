@@ -2,17 +2,31 @@
 http://www.passportjs.org/concepts/authentication/downloads/html/
 https://stackoverflow.com/questions/29066348/passportjs-serializeuser-and-deserializeuser-execution-flow
 https://www.youtube.com/watch?v=-RCnNyD0L-s
+https://medium.com/swlh/set-up-an-express-js-app-with-passport-js-and-mongodb-for-password-authentication-6ea05d95335c
 
 - passport manages session with the following:
     - passport.authenticate()
     - req.isAuthneticated()
     - req.user == userObj as in done(null,userObj) from LocalStrategy == userObj from done(null,userObj) from passport.deserializer
     - req.logout()
+    = req.logIn(userObj, CB)
 
-- ToDo
-1. how to access failure message?
+- how to access args of 'done': https://github.com/jaredhanson/passport-local/issues/4
+    - passport.authenticate('local',option,CB(arg1, arg2, arg3))
+        - {arg1,arg2,arg3} = done(arg1, arg2, arg3) from new LocalStrategy()
 
-2. Session DB <-- connect-mongo or mongoose
+    - passport.authenticate() returns function, so in order to invoke CB of LocalStrategy, 
+    it should be passport.authenticate()(req,res,next) 
+
+    - original option
+        {
+            successRedirect: '/workspace',
+            failureRedirect: '/',
+            failureMessage: true,
+        }
+        
+ToDo:
+2. session DB <-- connect-mongo or mongoose
     - current implementation: SessionUserObjMgr : memory based
     - can be changed to 
         - MongoDB based manually, with TTL indexing
@@ -28,6 +42,8 @@ https://www.youtube.com/watch?v=-RCnNyD0L-s
             - faster than DB
                 - we are using MongoDB for session management
             - need a way to store userObj to (logged in) session
+                - can be done at CB of passport.authenticate('',option,CB)
+
             - https://stackoverflow.com/questions/29066348/passportjs-serializeuser-and-deserializeuser-execution-flow
             - convenient: session management is done by connect-mongo 
             - overall better solution
@@ -39,7 +55,7 @@ https://www.youtube.com/watch?v=-RCnNyD0L-s
 
 3. main DB <-- mongodb or mongoose with bcrypt for password encryption
 
-4. implement frent end page
+4. implement front end page
     - body-parser
 
 */
@@ -92,7 +108,7 @@ passport.use('localLoginStrat'/*default 'local'*/,new LocalStrategy(
         let isLoginSuccessful = true
         console.log(`inside local arg1: ${username}, arg2: ${pwd}, sessionId: ${req.session.id}`) //debug
     
-        if (isLoginSuccessful)return done(null, SessionUserObjMgr('create'))
+        if (isLoginSuccessful)return done(null, SessionUserObjMgr('create'), {msg:"Hooray login success"})
         else return done(null, false, {message:'login failed'}) //how to access message: field?
     }))
 passport.serializeUser((userObj, done)=>{return done(null, userObj.id)})
@@ -105,16 +121,36 @@ app.use(passport.initialize())
 app.use(passport.session())
 
 app.get('/login', 
-    (req,res,next)=>{if (req.isAuthenticated())res.send('already logged in');else next();},
-    passport.authenticate('localLoginStrat', { //originally app.post('/login')
-    successRedirect: '/workspace',
-    failureRedirect: '/',
-    failureMessage: true,
-}
-),(req,res)=>{console.log(`CB after passport.authenticate`)})
+    (req,res,next)=>{
+        if (req.isAuthenticated())res.send('already logged in')
+        else next();
+    },
+    //(req,res,next)=>{passport.authenticate('localLoginStrat')(req,res,next)}    
+    (req,res,next)=>{
+        console.log(`before passport.authenticate`) //debug
+        passport.authenticate('localLoginStrat', //{successRedirect: '/workspace',failureRedirect: '/', failureMessage: true,})
+            (err,user,info)=>{ //{err,user,info} == done(arg1,arg2,arg3) from new LocalStrategy
+                console.log(`err: ${JSON.stringify(err)}, user:${JSON.stringify(user)} info:${JSON.stringify(info)}`)
+                
+                if (!user){
+                    console.log(`error: ${info.message}`)
+                    res.redirect('/')
+                }
+                else{
+                    req.logIn(user,err=>{
+                        //at this point req.session is newly created session
+                        //if you want to associate userObj with session, this is the right spot to do so 
+                        console.log(`after authenticate sessionid: ${req.session.id}`) //debug
+                        
+                        if(err)next(err);
+                        else return res.redirect('/workspace')
+                    })
+                }                            
+            })(req,res,next) //passport.authenticate wont be executed without this
+    }
+)
 
 app.get('/logout', (req,res)=>{
-
     SessionUserObjMgr('delete', req.user.id)
     req.logout(()=>{res.redirect('/')})
 })

@@ -48,6 +48,12 @@ app.listen(port,()=>{console.log(`listening on ${port}`)}) // == require('http')
     app.set('views', __dirname)  //views: keyword, mounting arg2 as base directory to search for files
     app.get('/ejsTest',(req,res)=>{res.render('index',{message:'hello ejs!!!'})}) // ./views/index.ejs 
 
+//information transfer from server logic to EJS
+    app.locals.attr1 = xxx
+    res.locals.attr2 = yyy
+    res.render('filename',{attr3: zzz})
+    => attr1, attr2, attr3 can be used in EJS file which returns value of xxx,yyy,zzz respectively
+
 //Jade & Pug
     https://jade-lang.com/api
     https://pugjs.org/language/doctype.html
@@ -56,6 +62,8 @@ app.listen(port,()=>{console.log(`listening on ${port}`)}) // == require('http')
     -ForecastIO     : latitude,longitude -> weather
     -Zippity-do-dah : zip -> latitude,longitude
     -practice more views (ejs) for dynamic page production
+
+
 
 //test verb routing
     app.get('/CRUD', (req,res)=>{res.send(`just received GET`)})
