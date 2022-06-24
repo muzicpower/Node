@@ -2,7 +2,7 @@
 /*
 augmentation by express
 1. send: 
-    - arg1: number => status code, default 200
+    - arg1: number == status code, default 200
     - arg2: 
         - string -> Content-Type: text/html
         - Buffer -> Content-Type: application/octet-stream

@@ -55,7 +55,7 @@ Key points of Express study: last update 6/5/2022
 
 10. How to generate exception?
     - throw new Error
-    - next('other than route or router')
+    - next('other than route or router'), next(new Obj), next('error message')
 
 11. express().listen() is same as http.createServer().listen
 
