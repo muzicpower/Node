@@ -5,28 +5,23 @@ https://www.youtube.com/watch?v=-RCnNyD0L-s
 https://medium.com/swlh/set-up-an-express-js-app-with-passport-js-and-mongodb-for-password-authentication-6ea05d95335c
 
 - passport manages session with the following:
-    - passport.authenticate()
+    - passport.authenticate() -> body-parser -> CB from new LocalStrategy(CB)
+    - req.logIn(userObj, CB): sets req.user = userObj
     - req.isAuthneticated()
-    - req.user == userObj as in done(null,userObj) from LocalStrategy == userObj from done(null,userObj) from passport.deserializer
+    - req.user
     - req.logout()
-    = req.logIn(userObj, CB)
 
 - how to access args of 'done': https://github.com/jaredhanson/passport-local/issues/4
     - passport.authenticate('local',option,CB(arg1, arg2, arg3))
         - {arg1,arg2,arg3} = done(arg1, arg2, arg3) from new LocalStrategy()
 
-    - passport.authenticate() returns function, so in order to invoke CB of LocalStrategy, 
-    it should be passport.authenticate()(req,res,next) 
+    - passport.authenticate() returns function, not its execution
+    - thus, in order to invoke CB of LocalStrategy: passport.authenticate()(req,res,next) 
 
-    - original option
-        {
-            successRedirect: '/workspace',
-            failureRedirect: '/',
-            failureMessage: true,
-        }
-        
+    - original option: { successRedirect: '/workspace', failureRedirect: '/', failureMessage: true,}
+
 ToDo:
-2. session DB <-- connect-mongo or mongoose
+2. session DB: use connect-mongo or mongoose
     - current implementation: SessionUserObjMgr : memory based
     - can be changed to 
         - MongoDB based manually, with TTL indexing
@@ -53,7 +48,7 @@ ToDo:
             - but slow
             - implement database access code for each serialize/deserialize
 
-3. main DB <-- mongodb or mongoose with bcrypt for password encryption
+3. main DB: use mongodb or mongoose with bcrypt
 
 4. implement front end page
     - body-parser
@@ -108,13 +103,15 @@ passport.use('localLoginStrat'/*default 'local'*/,new LocalStrategy(
         let isLoginSuccessful = true
         console.log(`inside local arg1: ${username}, arg2: ${pwd}, sessionId: ${req.session.id}`) //debug
     
-        if (isLoginSuccessful)return done(null, SessionUserObjMgr('create'), {msg:"Hooray login success"})
-        else return done(null, false, {message:'login failed'}) //how to access message: field?
-    }))
+        if (isLoginSuccessful)
+            return done(null, SessionUserObjMgr('create'), {msg:"Hooray login success"})
+        else
+            return done(null, false, {message:'login failed'})
+ }))
 passport.serializeUser((userObj, done)=>{return done(null, userObj.id)})
 passport.deserializeUser((id, done)=>{
     SessionUserObjMgr('print') //debug
-    return done(null, SessionUserObjMgr('read', id))  //stored in req.user
+    return done(null, SessionUserObjMgr('read', id))
 }) 
 
 app.use(passport.initialize())
@@ -125,48 +122,37 @@ app.get('/login',
         if (req.isAuthenticated())res.send('already logged in')
         else next();
     },
-    //(req,res,next)=>{passport.authenticate('localLoginStrat')(req,res,next)}    
     (req,res,next)=>{
         console.log(`before passport.authenticate`) //debug
-        passport.authenticate('localLoginStrat', //{successRedirect: '/workspace',failureRedirect: '/', failureMessage: true,})
-            (err,user,info)=>{ //{err,user,info} == done(arg1,arg2,arg3) from new LocalStrategy
-                console.log(`err: ${JSON.stringify(err)}, user:${JSON.stringify(user)} info:${JSON.stringify(info)}`)
-                
-                if (!user){
-                    console.log(`error: ${info.message}`)
-                    res.redirect('/')
-                }
-                else{
-                    req.logIn(user,err=>{
-                        //at this point req.session is newly created session
-                        //if you want to associate userObj with session, this is the right spot to do so 
-                        console.log(`after authenticate sessionid: ${req.session.id}`) //debug
-                        
-                        if(err)next(err);
-                        else return res.redirect('/workspace')
-                    })
-                }                            
-            })(req,res,next) //passport.authenticate wont be executed without this
+        function postAuth(err,user,info){ //{err,user,info} == done(arg1,arg2,arg3) from new LocalStrategy
+            console.log(`err: ${JSON.stringify(err)}, user:${JSON.stringify(user)} info:${JSON.stringify(info)}`)
+            if (!user){
+                console.log(`error: ${info.message}`)
+                res.redirect('/')
+            }
+            else{
+                req.logIn(user,err=>{//new session is determined at this point 
+                    console.log(`after authenticate sessionid: ${req.session.id}`) //debug
+                   
+                    if(err)next(err);
+                    else return res.redirect('/workspace')
+                })
+            }                            
+        }
+        passport.authenticate('localLoginStrat',postAuth)(req,res,next) //passport.authenticate wont be executed without this
     }
 )
-
 app.get('/logout', (req,res)=>{
     SessionUserObjMgr('delete', req.user.id)
     req.logout(()=>{res.redirect('/')})
 })
 app.get('/workspace', (req,res)=>{
     console.log(`workspace sessionid: ${req.session.id}`) //debug
-
-    if (req.isAuthenticated()){
-        res.send(`At your service Sir! userdata: ${JSON.stringify(req.user)}`)
-    }
-    else{ 
-        res.send(`NOT authorized`)
-    }
+    if (req.isAuthenticated())res.send(`At your service Sir! userdata: ${JSON.stringify(req.user)}`)
+    else res.send(`NOT authorized`)
 })
-
 app.get('/', (req,res)=>{
-    console.log(`root dir sessionid: ${req.session.id}`)
+    console.log(`root dir sessionid: ${req.session.id}`) //debug
     res.send(`Welcome to the world`)
 })
 app.listen(~~process.argv[2],()=>{console.log(`listening ${~~process.argv[2]}`)})

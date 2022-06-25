@@ -1,0 +1,54 @@
+1. sass, less : improved css
+	-grunt-contrib-less
+	-grunt-contrib-sass
+
+2. using node modules in client JS
+	-grunt-browserify
+ 	-grunt-contrib-requirejs
+
+3. minimize file package
+	-grunt-contrib-uglify
+
+4. misc
+	-grunt-contrib-watch
+	-grunt-contrib-concat
+	-grunt-contrib-imagemin
+
+
+5. Grunt: build automation (~= makefile)
+
+	-npm install grunt grunt-cli --save-dev
+	-npm install grunt-contrib-xxx --save-dev
+	-npm install grunt-browserify --save-dev
+
+
+	Gruntfile.js
+
+	module.exports=function(grunt){
+		grunt.initConfig({
+			less:{},
+			browserify:{},
+			uglify:{},		//xxx.min.js
+			watch:{},
+		})
+		grunt.loadNpmTasks("grunt-browserify")		// module name
+		grunt.loadNpmTasks("grunt-contrib-sass")
+		grunt.loadNpmTasks("grunt-contrib-less")
+		grunt.loadNpmTasks("grunt-contrib-uglify")
+		grunt.loadNpmTasks("grunt-contrib-watch")
+
+		grunt.registerTask("default",["broswerify","less"])
+		grunt.registerTask("watch",[ xxxx x x xx  ])
+		grunt.registerTask("build",["broswerify","less","uglify"])	//list of tag names
+	}
+
+	-npm run grunt  		(runs "default")
+	-npm run grunt build
+	-npm run grunt watch
+
+6.connect-assets
+	-npm install connect-assets --save-dev
+	-skpped usage
+
+7. Heroku
+    -not needed (AWS EC2 is better)
