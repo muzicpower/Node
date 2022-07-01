@@ -11,7 +11,10 @@ function s2aSetImmediate(func, a, cb){setImmediate(()=>{cb(func(a))})}
 function s2aSetTimeout(func, a, cb){setTimeout(()=>{cb(func(a))})}
 
 
-function s2aPromise(func, a, cb){(()=>Promise.resolve())().then(()=>{cb(func(a))})}
+function s2aPromise(func, a, cb){
+	Promise.resolve().then(()=>{cb(func(a))})
+	//new Promise(r=>r()).then(()=>{cb(func(a))})
+}
 async function s2aAwait(func, a, cb){ //'async' keyword == make it 'async' after await 
 	//await (()=>{console.log('await part')})()
 	await {}	// dummy sync part
@@ -28,8 +31,8 @@ console.log('before')
 //s2aSetImmediate(fibo,41,cb)
 //s2aSetTimeout(fibo,41,cb)
 
-//s2aPromise(fibo,41,cb)
-s2aAwait(fibo,41, cb)
+s2aPromise(fibo,41,cb)
+//s2aAwait(fibo,41, cb)
 
 console.log('after')
 

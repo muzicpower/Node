@@ -1,9 +1,8 @@
-
+//https://caolan.github.io/async/v3/docs.html
 var async = require('async');
 
 function f_1(){
     console.log('f_1');
-
     return 1;
 }
 function f_2(){
@@ -16,49 +15,41 @@ function f_3(){
     return 3;
 }
 
-//setTimeout(()=>{f_1();},300);
-//setTimeout(()=>{f_2();},200);
-//setTimeout(()=>{f_3();},100);
-
 console.log('**************');
 
-//cb(Callback) plays a critical role to gaurantee the order of execution
-//-> arguments[i+1] is executed only after arguments[i]'s cb is returned
-
 /*
+//async.series([f1,f2,f3...],cb)
 async.series([
-    (cb)=>{
+    cb=>{
         setTimeout(()=>{
             f_1();
             cb(null, 10);
-        },300);
+        },3000);
     },
-    (cb)=>{
+    cb=>{
         setTimeout(()=>{
             f_2();
-            //cb(new Error('f2 error occurred T_T'), 20);
+            cb(new Error('f2 error occurred T_T'), 20);
             cb(null, 20);
 
-        },200);
+        },2000);
 
     },
-    (cb)=>{
+    cb=>{
         setTimeout(()=>{
             f_3();
             cb(null,30);
 
-        },100);
+        },1000);
 
     }],
     (err,res)=>{
-        
-        if(err)
-            console.log('__error: ' + err);
-        else
-            res.forEach((ele,i)=>{console.log(i+'th return: ' + ele);} );
-        
+        if(err) console.log('error: ' + err);
+        else res.forEach((ele,i)=>{console.log(i+'th return: ' + ele);} );
     }
 );
+*/
+/*
 async.waterfall([
     (cb)=>{
         setTimeout(()=>{
@@ -66,32 +57,25 @@ async.waterfall([
             cb(null, 300, 400);
         },300);
     },
-    (a,b, cb)=>{
+    (a1,a2, cb)=>{
         setTimeout(()=>{
             f_2();
-            cb(null, a*a + b*b);
-
+            cb(null, a1*a1 + a2*a2);
         },200);
-
     },
-    (c, cb)=>{
+    (a1, cb)=>{
         setTimeout(()=>{
             f_3();
-            cb(null,Math.sqrt(c));
-
+            cb(null,Math.sqrt(a1));
         },100);
-
     }],
     (err,res)=>{
-        
-        if(err)
-            console.log('__error: ' + err);
-        else
-            console.log(res); //prints 500
+        if(err) console.log('__error: ' + err);
+        else console.log(res); //prints 500
     }
 );
-
-
+*/
+/*
 async.parallel({
     il: (cb)=>{
         setTimeout(()=>{
@@ -104,26 +88,21 @@ async.parallel({
             f_2();
             //cb(new Error('f2 error occurred T_T'), 20);
             cb(null, 20);
-
         },200);
-
     },
     sam: (cb)=>{
         setTimeout(()=>{
             f_3();
             cb(null,30);
-
         },100);
 
     }},
     (err,res)=>{
-        
-        if(err)
-            console.log('__error: ' + err);
-        else
-            console.log(res);
-    });
-
+        if(err) console.log('__error: ' + err);
+        else console.log(res);
+});
+*/
+/*
 async.parallelLimit({
     il: (cb)=>{
         setTimeout(()=>{
@@ -136,29 +115,20 @@ async.parallelLimit({
             f_2();
             //cb(new Error('f2 error occurred T_T'), 20);
             cb(null, 20);
-
         },200);
-
     },
     sam: (cb)=>{
         setTimeout(()=>{
             f_3();
             cb(null,30);
-
         },100);
-
-    }}, 2 ,
+    }}, 1 ,   //max number of parallel process
     (err,res)=>{
-        
-        if(err)
-            console.log('__error: ' + err);
-        else
-            console.log(res);
+        if(err) console.log('__error: ' + err);
+        else console.log(res);
     });
 */
-
-console.log('---------------');
-
+/*
 let queue = async.queue((task, cb)=>{
     console.log(task);
     cb('cb: ' + task.id); //error report: cb == 2nd argment of queue.push
@@ -166,8 +136,9 @@ let queue = async.queue((task, cb)=>{
 
 let i = 0;
 setInterval(()=>{
-    queue.push({id:i++},(err)=>{console.log(err);})
+    queue.push({id:i++},arg=>{console.log('myCB arg: ' + + arg);})
 },500);
+*/
 
 /*
 let idx = 0;
