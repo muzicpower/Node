@@ -21,7 +21,7 @@ let internetPages = {
 
     about:{url: "about", content: "We are aspiring SWE prep studeuts", links:[], delay:100},
     contact:{url: "contact", content: "You can reach us by following links", links:["phone","email"], delay:50},
-        phone:{url:"phone", content: "this is my phone number: xxx-xxx-xxxx", links:[], delay:2000},
+        phone:{url:"phone", content: "this is my phone number: xxx-xxx-xxxx", links:[], delay:200},
         email:{url:"email", content: "this is email:xxx@xxx.xxx", links:[], delay:300},
 }
 let savedPages = {}
@@ -35,19 +35,25 @@ function downloadPageAsync(url, cb){ //(cb(err, result))
     },delay)
 }
 
-let savePagesParaAsync = ((_leafCnt = 0, _totalLeaves = 1)=>{return (url,cb)=>{ //breadth first search in async 
+let cbRunner = ((_leafCnt = 0, _totalLeaves = 1)=>{return (numNodes,cb)=>{
+    if (numNodes) _totalLeaves += numNodes -1
+    else if(++_leafCnt == _totalLeaves) cb()
+}})()
+
+let savePagesParaAsync = (url,cb)=>{ //breadth first search in async 
     if (!savedPages[url]) {
         downloadPageAsync(url, (err, result)=>{
-            if (err) return console.log(`download error at url ${url}, ${err}`)
+            if (err) return cb(`download error at url ${url}, E: ${err}`)
             savedPages[url] = result   //save
-            
             result.links.forEach(i=>{savePagesParaAsync(i,cb)})
-
-            if (result.links.length) _totalLeaves += result.links.length -1
-            else if(++_leafCnt == _totalLeaves) cb()
+            cbRunner(result.links.length, cb)            
         })
-    }}
-})()
+    }
+    else{
+        savedPages[url].links.forEach(i=>{savePagesParaAsync(i,cb)})
+        cbRunner(savedPages[url].links.length, cb)
+    }
+}
 
 let savePagesSeriAsync = (urlList, idx, cb)=>{
     if (idx == urlList.length) return cb()
@@ -55,29 +61,35 @@ let savePagesSeriAsync = (urlList, idx, cb)=>{
     let url = urlList[idx]
     if (!savedPages[url]){
         downloadPageAsync(url, (err, result)=>{
-            if (err) return console.log(`download error at url ${url} with error[${err}]`)
+            if (err) return cb(`download error at url ${url}, E: [${err}]`)
             savedPages[url] = result //save
-
-            if (result.links.length == 0) savePagesSeriAsync(urlList, idx+1, cb)
-            else savePagesSeriAsync(result.links,0,()=>{savePagesSeriAsync(urlList, idx+1, cb)})
+            savePagesSeriAsync(result.links,0,()=>{savePagesSeriAsync(urlList, idx+1, cb)})
+            //if (result.links.length == 0) savePagesSeriAsync(urlList, idx+1, cb)
+            //else savePagesSeriAsync(result.links,0,()=>{savePagesSeriAsync(urlList, idx+1, cb)})
         })
     }
+    else savePagesSeriAsync(savedPages[url].links,0,()=>{savePagesSeriAsync(urlList, idx+1, cb)})
 }
 
-/*
-savePagesParaAsync("www.myHome.com", ()=>{
+savePagesParaAsync("www.myHome.com", err=>{
+    if (err) return console.log(err)
     console.log("----------Parallel Async-------------")
+    console.log(JSON.stringify(savedPages, null, 2))
+})
+
+/*
+savePagesSeriAsync(["www.myHome.com"],0, err=>{
+    if (err) return console.log(err)
+    console.log("----------Serial Async-----------------------")
     console.log(JSON.stringify(savedPages, null, 2))
 })
 */
 
-savePagesSeriAsync(["www.myHome.com"],0, ()=>{
-    console.log("----------Serial Async-----------------------")
-    console.log(JSON.stringify(savedPages, null, 2))
-})
-
-
 /*------------------------------------------------------------------------------------------
+
+
+
+
 //Sync
 function downloadPage(url){
     if (!internetPages[url]) throw new Error('page not found url: ' + url) 
