@@ -45,5 +45,5 @@ part 2. how to convert async -> sync ?
 
 - Thus, the only way to make it synchronous is to NOT queue CB's in the first place.
 - It looks impossible to convert a async to sync just by wrapping it with keywords such as await or promise because async already sent CB into event Q
-
+- await is not making something sync. It's more about guaranteeing the order of execution ((stmt1), promise.then(stmt2)) in async dimension
 */
