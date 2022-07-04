@@ -71,6 +71,7 @@ function promisefy(cbAPI){ return function promisedfied(...arg){
 //4. Async & Await
 //await == guarantee of order or execution. BUT all within the defined async function
 //that is why the order of execution is disrupted when compared to function outside async function
+//async function implicitly returns promise
 /*
 function p(msg, msec){
     return new Promise((resolve,reject)=>{setTimeout(()=>{resolve(msg)},msec)})
