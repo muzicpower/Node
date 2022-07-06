@@ -1,5 +1,16 @@
 
 /*
+
+0. Know atomized unit in stream
+    - ex. writable._write(chunk,enc,done) : this 'chunk' could be object, or string , or binary data
+    - ex. readable.on('readable')  ...readable.read() : what unit is the return value of read()
+    - ex. readable.on('data', data=>{...}) : in what unit is data passed on?
+    - basic types for unit of stream: binary / string / object
+    - know well
+        - done callback when overriding _write or _transform
+        - simplified construction
+        - pipe(writableStream, {end:false/true})
+
 1. readable stream: implements Readable abstract class
     - pipe(writableStream)
     - on('readable')
@@ -8,10 +19,10 @@
     - on('end')
     - setEncoding('utf8')
 */
-//--------------------------------------------------------------------------
+
 /*
 1.1 Flowing mode of readable stream
-    - 'data' event and data is already in CB argument
+    - 'data' event and data is already in CB argument   
     - arg contains everything including '\0' (ex. 'abc\n\0')
     - buffer is flushed and empty, and in pause mode, waiting for more data
 */
@@ -28,7 +39,7 @@ console.log('enter something:')
 
 /*
 1.2 non-flowing mode of readable stream
-    - 'readable' event and readable.read is called to retrieve data 
+    - 'readable' event and readable.read() is called to retrieve data 
     -  type 'abc' and enter => 'abc\n\0' => read() returns 'abc\n' and '\0' remains in buffer.
     -  when '\0' remains in buffer and control reaches the end, it is interpreted as no more data coming and program terminates
 */
@@ -46,10 +57,10 @@ process.stdin
 console.log('enter something:')
 */
 
-//1.3 Async iterators: not understood yet
+//1.3 Async iterators: kinda underestood
 /*
 (async ()=>{
-    for await(const chunk of process.stdin)
+    for await(const chunk of process.stdin) //stream is inherently CB-based, so using await after declaring async makes sense
         process.stdout.write(`${chunk.toString().toUpperCase()}`)
 })()
 console.log('enter something:')
@@ -102,16 +113,16 @@ class StdinStream extends Readable{
 let stdinStream = new StdinStream()
 */
 /*
-stdinStream.setEncoding('utf8').on('data',input=>{
-    console.log(`data: ${input}`)
-}).on('end', ()=>{console.log(`end of StdinStream`)})
+stdinStream.setEncoding('utf8')
+.on('data',input=>{ console.log(`data: ${input}`)})
+.on('end', ()=>{console.log(`end of StdinStream`)})
+console.log(`enter something please:`)
 */
 /*
-stdinStream.setEncoding('utf8').on('readable',()=>{
-    let chunk
-    while (chunk = stdinStream.read()){
-        console.log(`data: ${chunk.trim().toUpperCase()}`)
-    }
+stdinStream.setEncoding('utf8')
+.on('readable',()=>{
+    for (let chunk; chunk = stdinStream.read();)
+        console.log(`data: >>${chunk.trim().toUpperCase()}<<`)
 })
 console.log(`enter something please:`)
 */
@@ -119,12 +130,16 @@ console.log(`enter something please:`)
 1.5 Readable.from: object array -> stream 
 */
 /*
-let readIter = Readable.from([{name:'kim', addr:'Seoul'},{name:'lee', addr:'NewYork'},{name:'Wilson',addr:'Chicago'}])
-readIter.on('data', input=>{
-    console.log(`data: ${JSON.stringify(input,null,2)}`)
-}).on('end', ()=>{console.log('end of Readable.from')})
+Readable.from([{name:'kim', addr:'Seoul'},{name:'lee', addr:'NewYork'},{name:'Wilson',addr:'Chicago'}])
+.on('data', input=>{console.log(`data: ${JSON.stringify(input,null,2)}`)})
+.on('end', ()=>{console.log('end of Readable.from')})
 */
-
+/*
+(async ()=>{
+    for await(const i of Readable.from([{name:'kim', addr:'Seoul'},{name:'lee', addr:'NewYork'},{name:'Wilson',addr:'Chicago'}]))
+        console.log(`${JSON.stringify(i,null,4)}`)
+})()
+*/
 
 /*
 2. Writable Streams
@@ -144,7 +159,7 @@ process.stdout.on('finish', ()=>{console.log('writing to stdout is complete')})
 */
 
 //2.1 backpressure and 'drain' event
-
+/*
 import {createServer} from 'http'
 import Chance from 'chance'
 
@@ -163,49 +178,173 @@ const server = createServer((req,res)=>{
     writeMore()
     res.on('finish', ()=>console.log('All data sent----------------'))
 }).listen(8080, ()=>{console.log('listening on http://localhost:8080')})
-
+*/
 //2.2 writable customization
-/*
+
 import {Writable} from 'stream'
 class StdoutStream extends Writable{
-    constructor(...options){
+    constructor(tag='##',manualDone=false, ...options){
         super({...options,objectMode: true})
+        this._done = null
+        this.tag = tag
+        this.manualDone = manualDone
     }
-    _write(chunk, encoding,cb){
-        process.stdout.write(`###${chunk.toString()}###\n`)
-        cb() //if this is omitted, next write does not call _write
+
+    _write(chunk, encoding,done){
+        process.stdout.write(this.tag+chunk.toString().trim().toUpperCase()+this.tag+'\n')
+        if (this.manualDone)this._done = done
+        else done() //if this is omitted, subsequent ._write() becomes pending 
     }
 }
 
-let a = new StdoutStream()
+let a = new StdoutStream('##',true)
 a.write('hello world')
 a.write('this stream chapter is really good')
-*/
+a.write('stream is so elegant')
+a._done()
+//a._done()
+//everything here is sync
+console.log('end of sync control')
 
 /*
-3. pipe chaning
-import { createReadStream, createWriteStream } from 'fs'
-createReadStream('test_2.js')
-.pipe(createWriteStream('test_2_copy.js'))
-.on('finish', ()=>{console.log('copy finished')})
+//pipe forking
+process.stdin.pipe(new StdoutStream('**'))
+process.stdin.pipe(new StdoutStream('$$$'))
+*/
 
+//3 Transform stream 
 
+import {Transform} from 'stream'
+/*
+class MyTrans extends Transform{
+    constructor(){
+        super()
+        this.counter = 0
+    }
+    _transform(chunk, encode, done){
+        console.log(`counter: ${this.counter++}`)
+        this.push(chunk.toString().toUpperCase()) //this generates 'read' or 'readable' event
+        done() // most important thing to understand
+    }
+    _flush(done){ // Transform.end() invokes _transform() and _flush() sequentially
+                // how to pass this.counter through CB?
+        done()
+    }
+}
+*/
+/*
+let mytrans = new MyTrans()
+mytrans
+.on('data',input=>{console.log(`data: ${input}`)})
+.on('finish', (err)=>{console.log(`end of stream`)})
+.pipe(process.stdout)  //late piping: connect first and then write 
+
+mytrans.write('hihihi',()=>{console.log('first CB')})
+mytrans.end('hello', ()=>{console.log(`second CB`)})
+*/
+
+//process.stdin.pipe(new MyTrans()).pipe(process.stdout)
 //process.stdin.pipe(process.stdout)
-//process.stdout.pipe(process.stdin)
+/*
+import {createReadStream, createWriteStream} from 'fs'
+let byteCounter = ((_totalByte=0)=>{return delta=>{return _totalByte+=delta}})()
+
+createReadStream('./data.txt')
+.pipe(new MyTrans())
+    .on('data',input=>{byteCounter(input.toString().length)}) //monitoring, data gathering
+    .on('finish', ()=>{console.log(`total bytes: ${byteCounter(0)}`)})
+.pipe(createWriteStream('./data_upper.txt'))
+    .on('finish', ()=>{console.log(`transform finished`)})
+*/
+
+/*
+4. import { PassThrough } from 'stream'
+    - for monitoring, data gathering purpose: 
+
+5. Late Piping: connect first and write later 
+
+6. lazy stream: create stream obj when first _read or _write is called
+    - module 'lazystream'
+
+7. error handling in pipe / stream
+    - stream.destroy()
+    - on('error', error handler) but only on single stream object
+    - pipeline(str1, str2, str3,..,cb): handles errors for ALL streams in the pipeline 
 
 */
 
+/* stream expansion
+[8]. task stream in serial: file concatenation p.204
+
+    - Readable.from : [file1, file2, file3...] => destFile
+    - createReadStream / createWriteStream : file#x -> destFile
+    - readable.pipe(writable, {end:false}) : do not close writable when readable ends (because there are multiple readables coming up)
+
+[9]. task stream in parallel: URL status monitoring p.209
+    - file1: url1, url2, url3, ...
+    - module 'split'
+    - check status each link in parallel and output the result
+    
+    9.1 + limited concurrency(parallelism)
+        - use 'done' judiciously from _transform(data, enc, done)
+
+    9.2 + ordered
+        - use 'parallel-transform' module
+
+// piping patterns
+10. combining multiple streams in serial
+    - 'pumpify' module
+    - returns a 'single stream' compared to pipeline or pipe chaining
+
+11. forking a stream
+    - src.pipe(dst1); src.pipe(dst2); src.pipe(dst3); ...
+    - bottleneck effect by one of dst's backpressure
+    - put PassThrough stream as a placeholder and retrieve later
+
+[12]. merging streams : merge multiple files by unit of line
+    - src1.pipe(dst); src2.pipe(dst); src3.pipe(dst); ...
+    - dst stream creation: {end: false}
+    - dst.end() by the last src stream to finish 
+    - to 'atomize' the unit of streaming by a line, use src_n.pipe(split(line=>line+'\n')).pipe(dst,{end:false})
+    - For 'ordered' merging, use 'multistream' module
+
+[13]. mux / demux
+    - define header
+    - know Buffer operation(alloc,write,copy) for header
+    - carefully design orders of .read() for parsing headers on the server side
+        - thinking when data is only partially available and it will have to resume later
+        - .read(size) seems to be all or nothing operation in terms of specified 'size'
+
+    - try object stream to make it easier in terms of size processing
+    - ref. ternary-stream
+
+*/
 
 /*
-4. path module
+MISC
+
+1. path module
 import {basename, join} from 'path'
 let filepath = `c:/user/smk/myfile.gif`
 console.log(basename(filepath)) //get rid of directory path
 console.log(join('abc:','def')) //joins with '/' in between
 
-5. chance module
+2. chance module
 import Chance from 'chance'
 const chance = new Chance()
 let randomString = chance.string({length: 10})
 if (chance.bool({likelihood:5})){ xxx }
+
+3. split module
+
+4. import { fork } from 'child_process'
+
+5. import { connect } from 'net'
+
+6.
+    Buffer.alloc
+    Buffer.writeUInt8
+    Buffer.writeUInt32BE
+    chunk.copy(buff, offset)
+    writableStrea.write()
 */
