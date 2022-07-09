@@ -168,6 +168,24 @@ savePagesParaPromise("www.myHome.com")
 
 /*------------------------------------------------------------------------------------------
 
+//1. which resolve take effect?
+function C(){return new Promise((res,rej)=>{
+    res(()=>{console.log('____ccc___')})
+})}
+
+function B(){return new Promise((res,rej)=>{
+    //res('bbb')
+})}
+
+function A(){
+    return new Promise((res,rej)=>{
+        B().then(result=>{res(result)}) //even if B is called first, if res is not called innermost part of B, C will take over res
+        C().then(result=>{res(result)})
+    })
+}
+//A().then(res=>{res()})
+
+
 //Sync
 function downloadPage(url){
     if (!internetPages[url]) throw new Error('page not found url: ' + url) 

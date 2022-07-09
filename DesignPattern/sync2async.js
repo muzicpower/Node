@@ -1,5 +1,6 @@
 /* 
 part 1. convert sync -> async
+    - same as "how to send a certain code block to eventQ so that it would be executed after all other sync code blocks are finished"
 
 */
 
@@ -38,12 +39,21 @@ console.log('after')
 
 
 /*
-part 2. how to convert async -> sync ?
+part 2. how to convert async -> sync ? (await == guarantee of order ins ASYNC dimension (event Q))
 - can we retrieve CB's that's already queued before control reached the end of the code? 
-    - this seems impossible
-    - once a certain CB is put into event Q, there is no way to process that CB before the control reach the end of the current operation
+    - once a certain CB is put into event Q, there is no way to process that CB before the control reach the end (of sync operation)
+
+    - setTimeout(()=>{console.log('time is up')}, 500)
+      fibo(45) //takes 10 seconds
+    - above code always results in fibo(45) first and 'time is up' last
+    - this proves that no CB's in the eventQ is never gets fetched before current sync code block is finished
 
 - Thus, the only way to make it synchronous is to NOT queue CB's in the first place.
-- It looks impossible to convert a async to sync just by wrapping it with keywords such as await or promise because async already sent CB into event Q
-- await is not making something sync. It's more about guaranteeing the order of execution ((stmt1), promise.then(stmt2)) in async dimension
+- await is not making something sync, but more about guaranteeing the order of execution (like, (stmt1), promise.then(stmt2)) in ASYNC dimension
+- ex. 
+  await stmt1
+  stmt2
+    - now stmt2 is automatically in async dimension (event Q)
+    - everything after await statement is automatically queued into eventQ and the order is guaranteed (stmt2 after stmt1)
+
 */

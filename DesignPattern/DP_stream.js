@@ -342,7 +342,7 @@ if (chance.bool({likelihood:5})){ xxx }
 5. import { connect } from 'net'
 
 6.
-    Buffer.alloc
+    Buffer.alloc // ==  factory function returning Buffer object
     Buffer.writeUInt8
     Buffer.writeUInt32BE
     chunk.copy(buff, offset)
